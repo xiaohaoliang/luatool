@@ -3,7 +3,7 @@ print(wifi.sta.getip())
 wifi.setmode(wifi.STATION)
 station_cfg={}
 station_cfg.ssid="xiaorenren"
-station_cfg.pwd="xiaomifeng"
+station_cfg.pwd="*****"
 wifi.sta.config(station_cfg)
 print(wifi.sta.getip())
 --192.168.18.110
@@ -20,6 +20,27 @@ local hcho = -1
 local co2 = -1
 local Temp = -1
 local Hum = -1
+
+function calcAQI(pNum)
+    --local clow = {0,15.5,40.5,65.5,150.5,250.5,350.5}
+    --local chigh = {15.4,40.4,65.4,150.4,250.4,350.4,500.4}
+    --local ilow = {0,51,101,151,201,301,401}
+    --local ihigh = {50,100,150,200,300,400,500}
+    local ipm25 = {0,35,75,115,150,250,350,500}
+    local laqi = {0,50,100,150,200,300,400,500}
+    local result={"优","良","轻度污染","中度污染","重度污染","严重污染","爆表"}
+    --print(table.getn(chigh))
+    aqiLevel = 8
+    for i = 1,table.getn(ipm25),1 do
+         if(pNum<ipm25[i])then
+              aqiLevel = i
+              break
+         end
+    end
+    --aqiNum = (ihigh[aqiLevel]-ilow[aqiLevel])/(chigh[aqiLevel]-clow[aqiLevel])*(pNum-clow[aqiLevel])+ilow[aqiLevel]
+    aqiNum = (laqi[aqiLevel]-laqi[aqiLevel-1])/(ipm25[aqiLevel]-ipm25[aqiLevel-1])*(pNum-ipm25[aqiLevel-1])+laqi[aqiLevel-1]
+    return math.floor(aqiNum),result[aqiLevel-1]
+end
 
 function resolveData(data)
     if(((string.byte(data,1)==0x42) and(string.byte(data,2)==0x4d))) then
@@ -81,18 +102,20 @@ srv:listen(80,function(conn)
     --for i,v in pairs(sensors) do 
     --    sensors_str = sensors_str..i..":"..v.."\n"
     --end
-    conn:send("<h1> This is xiaohao's 7 nodemcu!</h1><h2>"..sensors_stat.."</h2><h3>send_count="..send_count.."!</h3><p>res="..LeweiMqtt.logs().."</p>")
+    conn:send("<h1> This is xiaohao's 7 nodemcu!</h1><h2>"..sensors_stat.."</h2><h3>send_count="..send_count.."!</h3>")
     end) 
 end)
 
 
-LeweiMqtt.init("f1afc49324444d31955d14cdc0e02eea","02")
+LeweiMqtt.init("f1afc*****","02")
 LeweiMqtt.connect()
 
 sendTimer = tmr.create()
 sendTimer:register(60000, tmr.ALARM_AUTO, function() 
 
 LeweiMqtt.appendSensorValue("dust",pm25)
+aqi,result = calcAQI(pm25)
+LeweiMqtt.appendSensorValue("AQI",aqi)
 LeweiMqtt.appendSensorValue("CO2",co2)
 LeweiMqtt.appendSensorValue("HCHO",hcho)
 LeweiMqtt.appendSensorValue("H1",Hum)

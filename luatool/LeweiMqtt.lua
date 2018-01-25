@@ -8,41 +8,6 @@
 -- MIT license, http://opensource.org/licenses/MIT
 -- ***************************************************************************
 
---[[
---*****sample*****
-wifi.setmode(wifi.STATION)
-
-station_cfg={}
-station_cfg.ssid="WIFI_SSID"
-station_cfg.pwd="WIFI_PASSWORD"
-wifi.sta.config(station_cfg)
-wifi.sta.connect()
-
-require("LeweiMqtt")
-LeweiMqtt.init("LEWEI_USERKEY","LEWEI_GATEWAY")
-
-
-function localFnAppendSensorValue(p1)
-   LeweiMqtt.appendSensorValue("sensor2",0)
-   print("test function!"..p1)
-end
-
-function localFnSendSensorValue(p1)
-   print("test function1!"..p1)
-   LeweiMqtt.sendSensorValue("t1",1)
-end
-
---add 2 switches on LEWEI50 website,name them "a","s"
-LeweiMqtt.addUserSwitch(localFnAppendSensorValue,"a",1)
-LeweiMqtt.addUserSwitch(localFnSendSensorValue,"s",1)
-
-wifi.eventmon.register(wifi.eventmon.STA_GOT_IP, function(T)
-print("\n\tSTA - GOT IP".."\n\tStation IP: "..T.IP.."\n\tSubnet mask: "..T.netmask.."\n\tGateway IP: "..T.gateway)
-LeweiMqtt.connect()
-
-end)
-wifi.sta.eventMonStart()
-]]--
 
 local moduleName = 'LeweiMqtt'
 local M = {}
@@ -59,7 +24,7 @@ local uSwitchNode = nil
 local m
 local bConnected = false
 local onlineChkTmr = tmr.create()
-local log = "LeweiMqtt_log:"
+
 
 --local cjson = require("cjson")
 local cjson = sjson
@@ -105,7 +70,7 @@ function M.sendSensorValue(sname,svalue)
      
      if(bConnected) then
           m:publish("/lw/u/"..clientId,PostData,0,0, function(client)
-               --print("sent")
+               print("sent")
                PostData = ""
           end)
      end
@@ -146,7 +111,7 @@ local function sendFeedBack(msg,data)
      
      responseStr = responseStr.."}"
      --print(responseStr)
-     m:publish("/lw/r/"..clientId,responseStr,0,0, function(client) log=log.."answered" end)
+     m:publish("/lw/r/"..clientId,responseStr,0,0, function(client) print("answered") end)
      responseStr = nil
 end
 
@@ -173,9 +138,9 @@ end
 
 function M.connect()
      -- for TLS: m:connect("192.168.11.118", secure-port, 1)
-     log=log.."connecting\n"
+     print ("connecting")
      m:on("offline", function(client) 
-          log=log.." offline;\n"
+          print (" offline")
           bConnected = false
           onlineChkTmr:start()
      end)
@@ -198,17 +163,13 @@ function M.connect()
      
      --m:connect(serverName, serverPort)
      m:connect(serverName, serverPort, 0, function(client)
-          log=log.."connected\n" 
+          print("connected") 
           onlineChkTmr:stop()
           bConnected = true
-          m:subscribe("/lw/c/"..clientId,0, function(client) log=log.."subscribe success\n" end)
+          m:subscribe("/lw/c/"..clientId,0, function(client) print("subscribe success") end)
      end, function(client, reason)
-          log=log.."failed reason: "..reason..";\n" 
+          print("failed reason: "..reason) 
      end)
-end
-
-function M.logs()
-  return log
 end
 
 return M
